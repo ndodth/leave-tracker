@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq" // PostgreSQL driver
 )
@@ -37,9 +38,13 @@ func main() {
 	}
 
 	app := fiber.New()
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept",
+	}))
 	app.Post("/api/upload", UploadExcel)
 	app.Get("/api/history", GetLeaveHistory)
-	app.Get("/api/warning", GetLeaveHistory)
+	app.Get("/api/warning", GetWarning)
 
 	log.Println("🚀 Server is running at http://localhost:3000")
 	app.Listen(":3000")

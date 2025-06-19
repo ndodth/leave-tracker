@@ -40,30 +40,8 @@ func GetLeaveHistory(c *fiber.Ctx) error {
 			lh.วันที่เริ่มลา,
 			lh.วันที่สิ้นสุดการลา,
 			lt.ชื่อประเภท,
-			lh.อนุมัติ,
 
-			(
-				-- จำนวนวันลาเริ่มต้น
-				(
-					lt."จำนวนวัน" +
-					CASE 
-						WHEN s.รหัสsite = 1 THEN EXTRACT(YEAR FROM AGE(lh.วันที่เริ่มลา, e.วันที่เริ่มทำงาน))::int
-						ELSE 0
-					END
-				)
-				-- ลาที่ใช้ไปแล้วก่อนหน้านี้ (ในปีเดียวกัน)
-				- COALESCE((
-					SELECT SUM(DATE_PART('day', sub_lh.วันที่สิ้นสุดการลา::timestamp - sub_lh.วันที่เริ่มลา::timestamp) + 1)
-					FROM "ประวัติการลา" sub_lh
-					WHERE 
-						sub_lh.fk_รหัสพนักงาน = lh.fk_รหัสพนักงาน AND
-						sub_lh.ประเภทการลา = lh.ประเภทการลา AND
-						EXTRACT(YEAR FROM sub_lh.วันที่เริ่มลา) = EXTRACT(YEAR FROM lh.วันที่เริ่มลา) AND
-						sub_lh.วันที่เริ่มลา < lh.วันที่เริ่มลา
-				), 0)
-				-- ลารอบนี้
-				- COALESCE(DATE_PART('day', lh.วันที่สิ้นสุดการลา::timestamp - lh.วันที่เริ่มลา::timestamp) + 1, 0)
-			) AS "เหลือวันลาอีกกี่วัน"
+			lh."เหลือวันลาอีกกี่วัน"
 
 		FROM "ประวัติการลา" lh
 		LEFT JOIN "ประเภทของแต่ละลาหยุด" lt ON lh.ประเภทการลา = lt.รหัสโค้ดลำดับ
@@ -91,7 +69,6 @@ func GetLeaveHistory(c *fiber.Ctx) error {
 			&lh.StartDate,
 			&lh.EndDate,
 			&lh.LeaveTypeName,
-			&lh.Approved,
 			&lh.RemainingDays,
 		)
 		if err != nil {
@@ -130,10 +107,11 @@ func UploadExcel(c *fiber.Ctx) error {
 		log.Println("❌อ่านข้อมูล sheet ไม่ได้:", err)
 		return c.Status(500).SendString("ไม่สามารถอ่านข้อมูล sheet ได้")
 	}
+
 	log.Println("✅อ่านข้อมูลจาก sheet สำเร็จ:", sheet)
 	for i, row := range rows {
 		if i == 0 {
-			continue // ข้ามหัวตาราง
+			continue
 		}
 		rowNumber := i + 1
 
@@ -147,11 +125,11 @@ func UploadExcel(c *fiber.Ctx) error {
 		leaveType := row[3]
 		site := row[4]
 
-		startDateParsed, err := time.Parse("02-Jan-06", startDate)
+		startDateParsed, err := tryParseDate(startDate)
 		if err != nil {
 			return c.Status(400).SendString(fmt.Sprintf("❌แถวที่ %d: วันที่เริ่มลาไม่ถูกต้อง (%s)", rowNumber, err))
 		}
-		endDateParsed, err := time.Parse("02-Jan-06", endDate)
+		endDateParsed, err := tryParseDate(endDate)
 		if err != nil {
 			return c.Status(400).SendString(fmt.Sprintf("❌แถวที่ %d: วันที่สิ้นสุดการลาไม่ถูกต้อง (%s)", rowNumber, err))
 		}
@@ -200,7 +178,7 @@ func UploadExcel(c *fiber.Ctx) error {
 
 		currentLeave := int(endDateParsed.Sub(startDateParsed).Hours()/24) + 1
 		remaining := baseLeave - usedLeaveDays - currentLeave
-
+		var data int
 		_, err = db.Exec(`
 			INSERT INTO "ประวัติการลา"
 			(fk_รหัสพนักงาน, วันที่เริ่มลา, วันที่สิ้นสุดการลา, ประเภทการลา, "เหลือวันลาอีกกี่วัน")
@@ -212,7 +190,53 @@ func UploadExcel(c *fiber.Ctx) error {
 		if err != nil {
 			return c.Status(500).SendString(fmt.Sprintf("❌แถวที่ %d: ไม่สามารถบันทึกลงฐานข้อมูล: %v", rowNumber, err))
 		}
+		data++
+		log.Printf("✅บันทึกแถวที่ %d ของรหัส %d เรียบร้อย\n", data, empID)
 	}
+	//err
 	log.Println("✅อัปโหลดไฟล์ Excel สำเร็จ:", fileHeader.Filename)
+	_ = GetWarning(c)
 	return c.Status(200).SendString("✅อัปโหลดไฟล์ Excel สำเร็จ")
+}
+func GetWarning(c *fiber.Ctx) error {
+	type WarningUser struct {
+		WarningID    int    `json:"warningID"`
+		EmployeeID   int    `json:"EmployeeID"`
+		EmployeeName string `json:"EmployeeName"`
+		Email        string `json:"Email"`
+		Remaining    int    `json:"Remaining"`
+		LeaveType    string `json:"LeaveType"`
+	}
+
+	rows, err := db.Query(`
+		SELECT lh.รหัสลา, e.รหัสพนักงาน, e.ชื่อ_นามสกุล, e.email, lh."เหลือวันลาอีกกี่วัน", t.ชื่อประเภท
+		FROM "ประวัติการลา" lh
+		JOIN "ประเภทของแต่ละลาหยุด" t ON t.รหัสโค้ดลำดับ = lh.ประเภทการลา
+		JOIN พนักงาน e ON lh.fk_รหัสพนักงาน = e.รหัสพนักงาน
+		WHERE lh."เหลือวันลาอีกกี่วัน" < 0 AND lh.เตือน = false
+	`)
+	if err != nil {
+		return c.Status(500).SendString("❌ ไม่สามารถดึงข้อมูลพนักงานที่เหลือวันลาติดลบ")
+	}
+	defer rows.Close()
+
+	var warnings []WarningUser
+	for rows.Next() {
+		var u WarningUser
+		if err := rows.Scan(&u.WarningID, &u.EmployeeID, &u.EmployeeName, &u.Email, &u.Remaining, &u.LeaveType); err == nil {
+			warnings = append(warnings, u)
+		}
+	}
+
+	return c.JSON(warnings)
+}
+
+func tryParseDate(dateStr string) (time.Time, error) {
+	formats := []string{"02-Jan-06", "2-Jan-06", "2-Jan-2006", "02-Jan-2006"}
+	for _, format := range formats {
+		if t, err := time.Parse(format, dateStr); err == nil {
+			return t, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("invalid date format: %s", dateStr)
 }
