@@ -16,25 +16,27 @@ var db *sql.DB
 func main() {
 	var err error
 
-	err = godotenv.Load()
-	if err != nil {
-		log.Fatal("Error loading .env file")
+	// โหลด .env เฉพาะตอนรันในเครื่องเรา (ไม่โหลดใน Railway)
+	if os.Getenv("RAILWAY_ENVIRONMENT") == "" {
+		if err := godotenv.Load(); err != nil {
+			log.Println("⚠️ Warning: ไม่พบไฟล์ .env (อาจจะรันบน production อยู่)")
+		}
 	}
+
 	connStr := os.Getenv("SUPABASE_DB_URL")
 	if connStr == "" {
-		log.Fatal("ก environment variable is not set")
+		log.Fatal("❌ Environment variable SUPABASE_DB_URL is not set")
 	}
 
 	db, err = sql.Open("postgres", connStr)
 	if err != nil {
-		log.Fatal("Failed to connect to Supabase:", err)
+		log.Fatal("❌ Failed to connect to Supabase:", err)
 	}
 	defer db.Close()
 
 	err = db.Ping()
 	if err != nil {
-		log.Println("read", err)
-		log.Fatal("Failed to connect to Supabase:", err)
+		log.Fatal("❌ Failed to connect to Supabase:", err)
 	}
 
 	app := fiber.New()
@@ -42,6 +44,7 @@ func main() {
 		AllowOrigins: "*",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
+
 	app.Post("/api/upload", UploadExcel)
 	app.Get("/api/history", GetLeaveHistory)
 	app.Get("/api/warning", GetWarning)
