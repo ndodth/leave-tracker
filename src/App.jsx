@@ -27,7 +27,7 @@ function App() {
   }, []);
 
   const fetchData = () => {
-    fetch('http://localhost:3000/api/history')
+    fetch('https://leave-tracker-production-8bcc.up.railway.app//api/history')
       .then((res) => res.json())
       .then((data) => {
         if (Array.isArray(data)) setLeaves(data);
@@ -39,7 +39,7 @@ function App() {
   const fetchSummary = async () => {
     try {
       console.log(`Fetching summary for ${selectedMonth}/${selectedYear}`);
-      const res = await fetch(`http://localhost:3000/api/summary?month=${selectedMonth}&year=${selectedYear}`);
+      const res = await fetch(`https://leave-tracker-production-8bcc.up.railway.app//api/summary?month=${selectedMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error("ไม่พบข้อมูลสรุป");
       const data = await res.json();
       if (Array.isArray(data)) {
@@ -84,7 +84,7 @@ function App() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('http://localhost:3000/api/upload', {
+      const res = await fetch('https://leave-tracker-production-8bcc.up.railway.app//api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -93,7 +93,7 @@ function App() {
       alert(text);
       fetchData();
 
-      const warningRes = await fetch('http://localhost:3000/api/warning');
+      const warningRes = await fetch('https://leave-tracker-production-8bcc.up.railway.app//api/warning');
       const warningData = await warningRes.json();
 
       if (Array.isArray(warningData)) {
