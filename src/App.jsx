@@ -38,7 +38,6 @@ function App() {
 
   const fetchSummary = async () => {
     try {
-      console.log(`Fetching summary for ${selectedMonth}/${selectedYear}`);
       const res = await fetch(`https://leave-tracker-production-8bcc.up.railway.app/api/summary?month=${selectedMonth}&year=${selectedYear}`);
       if (!res.ok) throw new Error("ไม่พบข้อมูลสรุป");
       const data = await res.json();
@@ -68,7 +67,6 @@ function App() {
         },
         "d-wSsdetLCRUMcgoO"
       );
-      console.log("✅ Email sent:", response.status);
       return true;
     } catch (error) {
       console.error("❌ Email sending failed:", error);
@@ -143,92 +141,181 @@ function App() {
   const totalSummaryPages = Math.ceil(filteredSummary.length / summaryItemsPerPage);
 
   return (
-    <div className="container">
-      <header className="d-flex flex-wrap justify-content-center py-3 mb-4 border-bottom">
-        <a href="/" className="d-flex align-items-center mb-3 mb-md-0 me-md-auto text-dark text-decoration-none">
-          <span className="fs-4 fw-bold" style={{ color: '#293cc6' }}>Vanness Plus</span>
-        </a>
-        <ul className="nav nav-pills">
-          <li className="nav-item"><a href="#" className="nav-link active">Home</a></li>
-        </ul>
+    <div className="container my-5">
+      <header className="mb-4 text-center">
+        <h1 className="display-4 fw-bold" style={{ color: '#1a237e' }}>Vanness Plus - ระบบบันทึกการลา</h1>
+        <p className="lead text-secondary">จัดการข้อมูลวันลาของพนักงานอย่างง่ายและมีประสิทธิภาพ</p>
       </header>
 
-      <div className="text-center mb-4">
-        <h1 className="display-5 fw-bold">📝 Leaves History - {months[selectedMonth - 1]} {selectedYear}</h1>
-        <div className="d-flex flex-wrap justify-content-center gap-3 mt-3">
-          <button className={`btn btn-${mode === 'table' ? 'primary' : 'outline-primary'}`} onClick={() => setMode('table')}>📄 แสดงเป็นตาราง</button>
-          <button className={`btn btn-${mode === 'summary' ? 'primary' : 'outline-primary'}`} onClick={() => { setMode('summary'); fetchSummary(); }}>📊 โหมดสรุป</button>
-          <select className="form-select w-auto" value={selectedMonth} onChange={(e) => setSelectedMonth(Number(e.target.value))}>
-            {months.map((m, i) => (
-              <option key={i + 1} value={i + 1}>{m}</option>
-            ))}
-          </select>
-          <select className="form-select w-auto" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>
-            {[2024, 2025, 2026].map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-          {mode === 'summary' && (
-            <button className="btn btn-info" onClick={fetchSummary}>🔄 โหลดข้อมูล</button>
-          )}
-        </div>
+      <div className="d-flex flex-wrap justify-content-center gap-3 mb-4">
+        <button
+          className={`btn btn-lg ${mode === 'table' ? 'btn-primary' : 'btn-outline-primary'}`}
+          onClick={() => setMode('table')}
+        >
+          📄 แสดงตาราง
+        </button>
+        <button
+          className={`btn btn-lg ${mode === 'summary' ? 'btn-primary' : 'btn-outline-primary'}`}
+          onClick={() => {
+            setMode('summary');
+            fetchSummary();
+          }}
+        >
+          📊 โหมดสรุป
+        </button>
 
-        <div className="d-flex flex-column flex-md-row justify-content-between align-items-center mt-4 gap-3">
-          <button className="btn btn-success" onClick={handleUploadClick}>📤 Upload ข้อมูล</button>
-          <input type="file" accept=".xlsx" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
-          <input
-            type="text"
-            className="form-control w-100 w-md-50"
-            placeholder="🔍 ค้นหาด้วยรหัสลา หรือชื่อ"
-            value={search}
-            onChange={(e) => {
-              setSearch(e.target.value);
-              setCurrentPage(1);
-              setSummaryCurrentPage(1);
-            }}
-          />
-        </div>
+        <select
+          className="form-select form-select-lg w-auto"
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(Number(e.target.value))}
+          aria-label="เลือกเดือน"
+        >
+          {months.map((m, i) => (
+            <option key={i + 1} value={i + 1}>{m}</option>
+          ))}
+        </select>
+
+        <select
+          className="form-select form-select-lg w-auto"
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(Number(e.target.value))}
+          aria-label="เลือกปี"
+        >
+          {[2024, 2025, 2026].map((y) => (
+            <option key={y} value={y}>{y}</option>
+          ))}
+        </select>
+
+        {mode === 'summary' && (
+          <button className="btn btn-info btn-lg" onClick={fetchSummary} aria-label="โหลดข้อมูลสรุป">
+            🔄 โหลดข้อมูล
+          </button>
+        )}
       </div>
 
-      {mode === 'table' ? (
-        <div className="table-responsive table-container mt-4">
-          <table className="table table-striped table-bordered text-center mb-0">
-            <thead className="table-primary">
-              <tr>
-                <th>ID</th>
-                <th>Name</th>
-                <th>Site</th>
-                <th>Type</th>
-                <th>Start Date</th>
-                <th>End Date</th>
-                <th>Remaining</th>
-              </tr>
-            </thead>
-            <tbody>
-              {currentItems.length > 0 ? (
-                currentItems.map((leave, idx) => (
-                  <tr key={leave.id ?? `leave-${idx}`} className={leave.remaining_leave_days < 0 ? 'table-danger text-white' : ''}>
-                    <td>{leave.id}</td>
-                    <td>{leave.employee_name}</td>
-                    <td>{leave.site}</td>
-                    <td>{leave.leave_type_name}</td>
-                    <td>{leave.start_date?.substring(0, 10)}</td>
-                    <td>{leave.end_date?.substring(0, 10)}</td>
-                    <td>{leave.remaining_leave_days}</td>
-                  </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan="7">⏳ กำลังโหลดข้อมูล หรือไม่พบข้อมูล</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mb-5">
+        <button
+          className="btn btn-success btn-lg shadow-sm"
+          onClick={handleUploadClick}
+          aria-label="อัปโหลดไฟล์ Excel"
+        >
+          📤 Upload ข้อมูล
+        </button>
+        <input
+          type="file"
+          accept=".xlsx"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          style={{ display: 'none' }}
+        />
+
+        <input
+          type="search"
+          className="form-control form-control-lg shadow-sm"
+          placeholder="🔍 ค้นหาด้วยรหัสลา หรือชื่อ"
+          value={search}
+          onChange={(e) => {
+            setSearch(e.target.value);
+            setCurrentPage(1);
+            setSummaryCurrentPage(1);
+          }}
+          style={{ maxWidth: 350 }}
+          aria-label="ค้นหา"
+        />
+      </div>
+
+      {/* ตัวอย่างไฟล์ Excel */}
+      <section className="mb-5 p-4 bg-white rounded shadow-sm">
+        <div className="row align-items-center">
+          <div className="col-md-5 mb-3 mb-md-0">
+            <img
+              src="/sample-excel-format.png"
+              alt="ตัวอย่างไฟล์ Excel"
+              className="img-fluid rounded border"
+              style={{ maxHeight: 220, objectFit: 'contain' }}
+            />
+          </div>
+          <div className="col-md-7">
+            <h4 className="fw-bold text-primary mb-3">📌 ตัวอย่างไฟล์ Excel ที่รองรับ</h4>
+            <ul className="list-group list-group-flush fs-5" style={{ color: '#555' }}>
+              <li className="list-group-item">✅ <b>Email:</b> อีเมลพนักงาน</li>
+           <li className="list-group-item">✅ <b>Leave Start Date:</b> วันที่เริ่มลา (dd-mm-yyyy)</li>
+              <li className="list-group-item">✅ <b>Leave End Date:</b> วันที่สิ้นสุดลา (dd-mm-yyyy)</li>
+              <li className="list-group-item">✅ <b>Type Of Leave:</b> ประเภทวันลา (Business Leave, Sick Leave, Vacation Leave)</li>
+              <li className="list-group-item">✅ <b>Site:</b> siteที่ทำงาน (Office,WFH)</li>
+            </ul>
+            <p className="mt-3 text-muted fst-italic">โปรดตรวจสอบข้อมูลให้ถูกต้องก่อนอัปโหลดเพื่อความแม่นยำ</p>
+          </div>
         </div>
+      </section>
+
+      {/* ตารางข้อมูล */}
+      {mode === 'table' ? (
+        <section className="bg-white rounded shadow-sm p-3">
+          <div className="table-responsive">
+            <table className="table table-hover table-bordered align-middle text-center mb-0">
+              <thead className="table-primary">
+                <tr>
+                  <th>ID</th>
+                  <th>ชื่อ</th>
+                  <th>Site</th>
+                  <th>ประเภท</th>
+                  <th>วันเริ่ม</th>
+                  <th>วันสิ้นสุด</th>
+                  <th>วันลาคงเหลือ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentItems.length > 0 ? (
+                  currentItems.map((leave, idx) => (
+                    <tr
+                      key={leave.id ?? `leave-${idx}`}
+                      className={leave.remaining_leave_days < 0 ? 'table-danger text-white fw-bold' : ''}
+                    >
+                      <td>{leave.id}</td>
+                      <td>{leave.employee_name}</td>
+                      <td>{leave.site}</td>
+                      <td>{leave.leave_type_name}</td>
+                      <td>{leave.start_date?.substring(0, 10)}</td>
+                      <td>{leave.end_date?.substring(0, 10)}</td>
+                      <td>{leave.remaining_leave_days}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="7" className="text-muted fst-italic py-4">⏳ กำลังโหลดข้อมูล หรือไม่พบข้อมูล</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <nav aria-label="Pagination Table" className="d-flex justify-content-center mt-3">
+              <ul className="pagination pagination-lg">
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <li
+                    key={i}
+                    className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}
+                  >
+                    <button
+                      className="page-link"
+                      onClick={() => setCurrentPage(i + 1)}
+                      aria-current={currentPage === i + 1 ? "page" : undefined}
+                    >
+                      {i + 1}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+          )}
+        </section>
       ) : (
-        <>
-          <div className="table-responsive mt-4">
-            <table className="table table-bordered text-center">
+        // โหมดสรุป
+        <section className="bg-white rounded shadow-sm p-3">
+          <div className="table-responsive">
+            <table className="table table-bordered table-striped text-center mb-0 align-middle">
               <thead className="table-info">
                 <tr>
                   <th>ชื่อพนักงาน</th>
@@ -251,7 +338,7 @@ function App() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5">⏳ ไม่มีข้อมูลสรุป</td>
+                    <td colSpan="5" className="text-muted fst-italic py-4">⏳ ไม่มีข้อมูลสรุป</td>
                   </tr>
                 )}
               </tbody>
@@ -259,11 +346,18 @@ function App() {
           </div>
 
           {totalSummaryPages > 1 && (
-            <nav className="d-flex justify-content-center mt-3">
-              <ul className="pagination">
+            <nav aria-label="Pagination Summary" className="d-flex justify-content-center mt-3">
+              <ul className="pagination pagination-lg">
                 {Array.from({ length: totalSummaryPages }, (_, i) => (
-                  <li key={i} className={`page-item ${summaryCurrentPage === i + 1 ? 'active' : ''}`}>
-                    <button className="page-link" onClick={() => setSummaryCurrentPage(i + 1)}>
+                  <li
+                    key={i}
+                    className={`page-item ${summaryCurrentPage === i + 1 ? 'active' : ''}`}
+                  >
+                    <button
+                      className="page-link"
+                      onClick={() => setSummaryCurrentPage(i + 1)}
+                      aria-current={summaryCurrentPage === i + 1 ? "page" : undefined}
+                    >
                       {i + 1}
                     </button>
                   </li>
@@ -271,19 +365,7 @@ function App() {
               </ul>
             </nav>
           )}
-        </>
-      )}
-
-      {mode === 'table' && totalPages > 1 && (
-        <nav className="d-flex justify-content-center mt-4">
-          <ul className="pagination">
-            {Array.from({ length: totalPages }, (_, i) => (
-              <li key={i} className={`page-item ${currentPage === i + 1 ? 'active' : ''}`}>
-                <button className="page-link" onClick={() => setCurrentPage(i + 1)}>{i + 1}</button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+        </section>
       )}
     </div>
   );
