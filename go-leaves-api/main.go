@@ -45,6 +45,7 @@ func main() {
 	app.Post("/api/upload", UploadExcel)
 	app.Get("/api/history", GetLeaveHistory)
 	app.Get("/api/warning", GetWarning)
+	app.Get("/api/summary", GetSummary)
 
 	log.Println("🚀 Server is running at http://localhost:3000")
 	app.Listen(":3000")

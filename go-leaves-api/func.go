@@ -240,3 +240,47 @@ func tryParseDate(dateStr string) (time.Time, error) {
 	}
 	return time.Time{}, fmt.Errorf("invalid date format: %s", dateStr)
 }
+func GetSummary(c *fiber.Ctx) error {
+	month := c.Query("month")
+	year := c.Query("year")
+	println("Month:", month, "Year:", year)
+	rows, err := db.Query(`
+	SELECT e.ชื่อ_นามสกุล,
+		COALESCE(SUM((l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1), 0) AS total_days,
+		COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Sick Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS sick_days,
+		COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Business Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS vacation_days,
+		COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Vacation Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS business_days
+	FROM "ประวัติการลา" l
+	JOIN พนักงาน e ON e.รหัสพนักงาน = l.fk_รหัสพนักงาน
+	JOIN "ประเภทของแต่ละลาหยุด" t ON t.รหัสโค้ดลำดับ = l.ประเภทการลา
+	WHERE EXTRACT(MONTH FROM l.วันที่เริ่มลา) = $1 AND EXTRACT(YEAR FROM l.วันที่เริ่มลา) = $2
+	GROUP BY e.ชื่อ_นามสกุล
+`, month, year)
+
+	println("Query executed successfully")
+	if err != nil {
+		log.Println("❌ Error executing query:", err.Error())
+		return c.Status(500).JSON(fiber.Map{
+			"error": err,
+		})
+	}
+	defer rows.Close()
+
+	type Summary struct {
+		EmployeeName string `json:"employee_name"`
+		TotalDays    int    `json:"total_days"`
+		SickDays     int    `json:"sick_days"`
+		VacationDays int    `json:"vacation_days"`
+		BusinessDays int    `json:"business_days"`
+	}
+	println("Processing rows")
+	var results []Summary
+	for rows.Next() {
+		var s Summary
+		if err := rows.Scan(&s.EmployeeName, &s.TotalDays, &s.SickDays, &s.VacationDays, &s.BusinessDays); err == nil {
+			results = append(results, s)
+		}
+	}
+
+	return c.JSON(results)
+}
