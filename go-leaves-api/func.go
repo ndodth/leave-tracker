@@ -1,8 +1,10 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -283,4 +285,275 @@ func GetSummary(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(results)
+}
+
+type StartDocument struct {
+	ID                       int            `json:"id"`
+	EmployeeID               int            `json:"employee_id"`
+	EmployeeName             string         `json:"employee_name"`
+	IDCardCopy               sql.NullString `json:"id_card_copy"`
+	HouseRegistration        sql.NullString `json:"house_registration"`
+	Transcript               sql.NullString `json:"transcript"`
+	BankAccount              sql.NullString `json:"bank_account"`
+	Photo                    sql.NullString `json:"photo"`
+	PersonalDataFile         sql.NullString `json:"personal_data_file"`
+	EmploymentContract       sql.NullString `json:"employment_contract"`
+	ContractSigned           sql.NullBool   `json:"contract_signed"`
+	PersonalDataAcknowledged sql.NullBool   `json:"personal_data_acknowledged"`
+	SocialSecurityRegistered sql.NullBool   `json:"social_security_registered"`
+	WelcomeEmailSent         sql.NullBool   `json:"welcome_email_sent"`
+	WelcomeEmailDate         sql.NullTime   `json:"welcome_email_date"`
+	EmployeeReplied          sql.NullBool   `json:"employee_replied"`
+	ReplyDate                sql.NullTime   `json:"reply_date"`
+}
+
+func GetPositionsAndDepartments(c *fiber.Ctx) error {
+	type Result struct {
+		Position   string `json:"position"`
+		Department string `json:"department"`
+	}
+	var positions []string
+	var departments []string
+
+	// ดึงตำแหน่งไม่ซ้ำ
+	rows, err := db.Query(`SELECT DISTINCT ตำแหน่ง FROM พนักงาน WHERE ตำแหน่ง IS NOT NULL`)
+	if err != nil {
+		return c.Status(500).SendString("❌ ดึงตำแหน่งล้มเหลว")
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var pos string
+		rows.Scan(&pos)
+		positions = append(positions, pos)
+	}
+
+	// ดึงแผนกไม่ซ้ำ
+	rows2, err := db.Query(`SELECT DISTINCT แผนก FROM พนักงาน WHERE แผนก IS NOT NULL`)
+	if err != nil {
+		return c.Status(500).SendString("❌ ดึงแผนกล้มเหลว")
+	}
+	defer rows2.Close()
+	for rows2.Next() {
+		var dept string
+		rows2.Scan(&dept)
+		departments = append(departments, dept)
+	}
+
+	return c.JSON(fiber.Map{
+		"positions":   positions,
+		"departments": departments,
+	})
+}
+
+func GetStartDocuments(c *fiber.Ctx) error {
+	rows, err := db.Query(`
+		SELECT 
+			d.รหัส AS id,
+			d.รหัสพนักงาน AS employee_id,
+			e.ชื่อ_นามสกุล AS employee_name,
+			d.สำเนาบัตรประชาชน AS id_card_copy,
+			d.ทะเบียนบ้าน AS house_registration,
+			d.Transcript AS transcript,
+			d.บัญชีธนาคาร AS bank_account,
+			d.รูปถ่าย AS photo,
+			d.ไฟล์ข้อมูลส่วนบุคคล AS personal_data_file,
+			d.สัญญาจ้าง AS employment_contract,
+			d.เซ็นสัญญาแล้ว AS contract_signed,
+			d.รับทราบ_พรบ_ข้อมูล AS personal_data_acknowledged,
+			d.ลงทะเบียนประกันสังคม AS social_security_registered,
+			d.ส่งอีเมลต้อนรับแล้ว AS welcome_email_sent,
+			d.วันที่ส่งอีเมล AS welcome_email_date,
+			d.พนักงานตอบกลับแล้ว AS employee_replied,
+			d.วันที่ตอบกลับ AS reply_date
+		FROM เอกสารพนักงาน d JOIN พนักงาน e ON e.รหัสพนักงาน =d.รหัสพนักงาน ORDER BY รหัส
+	`)
+	if err != nil {
+		log.Println("❌ ไม่สามารถดึงข้อมูลเอกสาร:", err)
+		return c.Status(500).SendString("❌ ไม่สามารถดึงข้อมูลเอกสาร")
+	}
+	defer rows.Close()
+
+	var documents []StartDocument
+	for rows.Next() {
+		var doc StartDocument
+		if err := rows.Scan(
+			&doc.ID,
+			&doc.EmployeeID,
+			&doc.EmployeeName,
+			&doc.IDCardCopy,
+			&doc.HouseRegistration,
+			&doc.Transcript,
+			&doc.BankAccount,
+			&doc.Photo,
+			&doc.PersonalDataFile,
+			&doc.EmploymentContract,
+			&doc.ContractSigned,
+			&doc.PersonalDataAcknowledged,
+			&doc.SocialSecurityRegistered,
+			&doc.WelcomeEmailSent,
+			&doc.WelcomeEmailDate,
+			&doc.EmployeeReplied,
+			&doc.ReplyDate,
+		); err != nil {
+			log.Println("❌ ดึงข้อมูลล้มเหลวที่ row.Scan():", err)
+			return c.Status(500).SendString("❌ ดึงข้อมูลล้มเหลวที่ row.Scan()")
+		}
+		documents = append(documents, doc)
+	}
+
+	return c.JSON(documents)
+}
+
+type UpdateDocURL struct {
+	EmployeeID int    `json:"employee_id"`
+	Field      string `json:"field"`
+	URL        string `json:"url"`
+}
+
+func UpdateDocumentURL(c *fiber.Ctx) error {
+	var payload UpdateDocURL
+	if err := c.BodyParser(&payload); err != nil {
+		return c.Status(400).SendString("❌ ข้อมูลไม่ถูกต้อง")
+	}
+	log.Printf("✅ อัปเดตเอกสารสำหรับพนักงาน %d, ฟิลด์: %s, URL: %s\n", payload.EmployeeID, payload.Field, payload.URL)
+	query := fmt.Sprintf(`UPDATE เอกสารพนักงาน SET %s = $1 WHERE รหัสพนักงาน = $2`, payload.Field)
+
+	if _, err := db.Exec(query, payload.URL, payload.EmployeeID); err != nil {
+		log.Println("❌ อัปเดตลิงก์ล้มเหลว:", err)
+		return c.Status(500).SendString("❌ อัปเดตไม่สำเร็จ")
+	}
+
+	return c.SendString("✅ อัปเดตลิงก์สำเร็จ")
+}
+func ConfirmEmployee(c *fiber.Ctx) error {
+	id := c.Params("id")
+	fmt.Println("✅ ยืนยันพนักงาน ID:", id)
+	_, err := db.Exec(`UPDATE เอกสารพนักงาน SET พนักงานตอบกลับแล้ว = true, วันที่ตอบกลับ = CURRENT_TIMESTAMP WHERE รหัสพนักงาน = $1`, id)
+	if err != nil {
+		return c.Status(500).SendString("❌ ยืนยันล้มเหลว")
+	}
+	return c.SendString("✅ ยืนยันสำเร็จ ขอบคุณที่ตอบกลับ")
+}
+
+func addEmployee(c *fiber.Ctx) error {
+	type Employee struct {
+		Name       string `json:"name"`
+		Email      string `json:"email"`
+		Site       string `json:"site"`
+		Position   string `json:"position"`
+		Department string `json:"department"`
+		Boss       *int   // ใช้ pointer int เพราะจะเก็บรหัสหัวหน้าได้ หรือ nil
+	}
+
+	var emp Employee
+	if err := c.BodyParser(&emp); err != nil {
+		fmt.Println("❌ ข้อมูลไม่ถูกต้อง:", err)
+		return c.Status(400).SendString("❌ ข้อมูลไม่ถูกต้อง")
+	}
+	fmt.Println("✅ ข้อมูลพนักงาน:", emp)
+
+	if !strings.Contains(emp.Position, "หัวหน้า") {
+		err := db.QueryRow(`SELECT รหัสพนักงาน FROM พนักงาน WHERE ตำแหน่ง ILIKE '%หัวหน้า%' and แผนก = $1`, emp.Department).Scan(&emp.Boss)
+		if err != nil {
+			fmt.Println("❌ ไม่พบหัวหน้า:", err)
+			return c.Status(400).SendString("❌ ไม่พบหัวหน้าที่ระบุ")
+		}
+	} else {
+		emp.Boss = nil
+	}
+
+	// 🔻 ดึงค่ารหัสสูงสุดแล้ว +1
+	var nextID int
+	err := db.QueryRow(`SELECT COALESCE(MAX(รหัสพนักงาน), 1000) + 1 FROM พนักงาน`).Scan(&nextID)
+	if err != nil {
+		fmt.Println("❌ ไม่สามารถคำนวณรหัสใหม่:", err)
+		return c.Status(500).SendString("❌ ไม่สามารถคำนวณรหัสใหม่")
+	}
+
+	// 🔻 insert แบบกำหนดรหัสเอง
+	_, err = db.Exec(`
+		INSERT INTO พนักงาน 
+		(รหัสพนักงาน, ชื่อ_นามสกุล, email, fk_รหัสsite, ตำแหน่ง, แผนก, วันที่เริ่มทำงาน, หัวหน้า)
+		VALUES ($1, $2, $3, (SELECT รหัสsite FROM site WHERE ชื่อsite = $4), $5, $6, NOW(), $7)
+	`, nextID, emp.Name, emp.Email, emp.Site, emp.Position, emp.Department, emp.Boss)
+	if err != nil {
+		fmt.Println("❌ เพิ่มพนักงานล้มเหลว:", err)
+		return c.Status(500).SendString("❌ เพิ่มพนักงานล้มเหลว")
+	}
+	fmt.Println("✅ เพิ่มพนักงานสำเร็จ, รหัส:", nextID)
+	var Iddoc int
+	err = db.QueryRow(`SELECT COALESCE(MAX(รหัส), 1000) + 1 FROM เอกสารพนักงาน`).Scan(&Iddoc)
+	if err != nil {
+		fmt.Println("❌ ไม่สามารถคำนวณรหัสใหม่:", err)
+		return c.Status(500).SendString("❌ ไม่สามารถคำนวณรหัสใหม่")
+	}
+	// สร้างเอกสารว่าง
+	_, err = db.Exec(`
+		INSERT INTO เอกสารพนักงาน (รหัส,รหัสพนักงาน, ส่งอีเมลต้อนรับแล้ว,วันที่ส่งอีเมล) VALUES ($1,$2, TRUE,CURRENT_TIMESTAMP)
+	`, Iddoc, nextID)
+	if err != nil {
+		fmt.Println("❌ สร้างเอกสารไม่สำเร็จ:", err)
+		return c.Status(500).SendString("❌ สร้างเอกสารไม่สำเร็จ")
+	}
+
+	return c.JSON(fiber.Map{
+		"employee_id":   nextID,
+		"employee_name": emp.Name,
+		"email":         emp.Email,
+		"site":          emp.Site,
+	})
+}
+
+func GetSites(c *fiber.Ctx) error {
+	rows, err := db.Query(`SELECT รหัสsite, ชื่อsite FROM site`)
+	if err != nil {
+		fmt.Println("Error fetching sites:", err)
+		return c.Status(500).JSON(fiber.Map{"error": "โหลดไซต์ล้มเหลว"})
+	}
+	defer rows.Close()
+
+	var sites []map[string]string
+	for rows.Next() {
+		var id, name string
+		rows.Scan(&id, &name)
+		sites = append(sites, map[string]string{"id": id, "name": name})
+	}
+
+	return c.JSON(sites)
+}
+
+type UpdateBooleanRequest struct {
+	EmployeeID int    `json:"employee_id"`
+	Field      string `json:"field"`
+	Value      bool   `json:"value"`
+}
+
+var allowedBooleanFields = map[string]string{
+	"contract_signed":            "เซ็นสัญญาแล้ว",
+	"personal_data_acknowledged": "รับทราบ_พรบ_ข้อมูล",
+	"social_security_registered": "ลงทะเบียนประกันสังคม",
+	"welcome_email_sent":         "ส่งอีเมลต้อนรับแล้ว",
+	"employee_replied":           "พนักงานตอบกลับแล้ว",
+}
+
+func UpdateBooleanField(c *fiber.Ctx) error {
+	req := new(UpdateBooleanRequest)
+	if err := c.BodyParser(req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "ข้อมูลไม่ถูกต้อง"})
+	}
+
+	dbField, ok := allowedBooleanFields[req.Field]
+	if !ok {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": fmt.Sprintf("ไม่สามารถอัปเดตฟิลด์นี้ได้: %s", req.Field)})
+	}
+
+	query := fmt.Sprintf(`UPDATE เอกสารพนักงาน SET "%s" = $1 WHERE รหัสพนักงาน = $2`, dbField)
+
+	_, err := db.Exec(query, req.Value, req.EmployeeID)
+	if err != nil {
+		log.Println("❌ อัปเดต boolean ล้มเหลว:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "อัปเดตข้อมูลล้มเหลว"})
+	}
+
+	return c.JSON(fiber.Map{"message": "อัปเดตสถานะสำเร็จ"})
 }

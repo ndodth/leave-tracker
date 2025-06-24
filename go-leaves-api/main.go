@@ -47,9 +47,19 @@ func main() {
 
 	app.Post("/api/upload", UploadExcel)
 	app.Get("/api/history", GetLeaveHistory)
+	app.Post("/api/employees", addEmployee)
 	app.Get("/api/warning", GetWarning)
 	app.Get("/api/summary", GetSummary)
+	// ฝั่งหน้า employee
+	app.Get("/api/sites", GetSites)
+	app.Get("/api/meta-options", GetPositionsAndDepartments)
 
+	app.Post("/api/add-employee", addEmployee)
+	app.Get("/api/document", GetStartDocuments)
+	app.Post("/api/update-boolean", UpdateBooleanField)
+
+	app.Get("/api/employee-confirm/:id", ConfirmEmployee)
+	app.Post("/api/update-document-url", UpdateDocumentURL)
 	log.Println("🚀 Server is running at http://localhost:3000")
 	app.Listen(":3000")
 }
