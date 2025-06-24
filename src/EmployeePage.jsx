@@ -167,7 +167,7 @@ function EmployeePage() {
                 <tr key={emp.id}>
                   <td>{emp.employee_id}</td>
                   <td>{emp.employee_name}</td>
-                  <td>{emp.email?.String || '-'}</td>
+                  <td>{emp.employee_email}</td>
                   <td>{emp.welcome_email_sent?.Bool ? '✅' : '⛔'}</td>
                   <td>{emp.employee_replied?.Bool ? '✅' : '⛔'}</td>
                   {booleanFields.map(({ key }) => (

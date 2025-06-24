@@ -291,6 +291,7 @@ type StartDocument struct {
 	ID                       int            `json:"id"`
 	EmployeeID               int            `json:"employee_id"`
 	EmployeeName             string         `json:"employee_name"`
+	EmployeeEmail            string         `json:"employee_email"`
 	IDCardCopy               sql.NullString `json:"id_card_copy"`
 	HouseRegistration        sql.NullString `json:"house_registration"`
 	Transcript               sql.NullString `json:"transcript"`
@@ -351,6 +352,7 @@ func GetStartDocuments(c *fiber.Ctx) error {
 			d.รหัส AS id,
 			d.รหัสพนักงาน AS employee_id,
 			e.ชื่อ_นามสกุล AS employee_name,
+			e.email AS employee_email,
 			d.สำเนาบัตรประชาชน AS id_card_copy,
 			d.ทะเบียนบ้าน AS house_registration,
 			d.Transcript AS transcript,
@@ -380,6 +382,7 @@ func GetStartDocuments(c *fiber.Ctx) error {
 			&doc.ID,
 			&doc.EmployeeID,
 			&doc.EmployeeName,
+			&doc.EmployeeEmail,
 			&doc.IDCardCopy,
 			&doc.HouseRegistration,
 			&doc.Transcript,
