@@ -7,6 +7,8 @@ import emailjs from 'emailjs-com';
 import { data } from 'react-router-dom';
 
 function EmployeePage() {
+    const [searchTerm, setSearchTerm] = useState('');
+
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -143,9 +145,28 @@ function EmployeePage() {
     }
   };
 
+  const filteredEmployees = employees.filter(emp =>
+  emp.employee_id.toString().includes(searchTerm) ||
+  emp.employee_name.toLowerCase().includes(searchTerm.toLowerCase())
+);
+
   return (
     <div className="container my-5">
+        
       <h2 className="text-center text-primary fw-bold mb-4">📂 เอกสารพนักงาน</h2>
+     
+    <input
+          type="search"
+          className="form-control form-control-lg shadow-sm"
+          placeholder="🔍 ค้นหาด้วยรหัสลา หรือชื่อ"
+          value={searchTerm}
+          onChange={(e) => {
+      setSearchTerm(e.target.value)}
+          }
+          style={{ maxWidth: 350 }}
+          aria-label="ค้นหา"
+        />
+      
       <button className="btn btn-success mb-3" onClick={() => setShowAddModal(true)}>➕ เพิ่มพนักงาน</button>
 
       {loading ? <p>⏳ กำลังโหลด...</p> : (
@@ -163,7 +184,7 @@ function EmployeePage() {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
+  {filteredEmployees.map((emp) => (
                 <tr key={emp.id}>
                   <td>{emp.employee_id}</td>
                   <td>{emp.employee_name}</td>
