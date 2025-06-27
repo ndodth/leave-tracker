@@ -73,7 +73,7 @@ function HomePage() {
         const file = e.target.files[0];
         if (!file) return;
 
-        let rows;=
+        let rows; 
         // --- เช็ค format ไฟล์ก่อนอัปโหลด ---
         try {
             const data = await file.arrayBuffer();
