@@ -24,6 +24,7 @@ type LeaveHistory struct {
 	ID            int    `json:"id"`
 	EmployeeID    int    `json:"employee_id"`
 	EmployeeName  string `json:"employee_name"`
+	EmployeeEmail string `json:"employee_email"`
 	StartDate     string `json:"start_date"`
 	EndDate       string `json:"end_date"`
 	LeaveTypeName string `json:"leave_type_name"`
@@ -38,6 +39,7 @@ func GetLeaveHistory(c *fiber.Ctx) error {
 			lh.รหัสลา,
 			lh.fk_รหัสพนักงาน,
 			e.ชื่อ_นามสกุล,
+			e.email,
 			s.ชื่อsite,
 			lh.วันที่เริ่มลา,
 			lh.วันที่สิ้นสุดการลา,
@@ -67,6 +69,7 @@ func GetLeaveHistory(c *fiber.Ctx) error {
 			&lh.ID,
 			&lh.EmployeeID,
 			&lh.EmployeeName,
+			&lh.EmployeeEmail,
 			&lh.Site,
 			&lh.StartDate,
 			&lh.EndDate,
@@ -245,21 +248,41 @@ func tryParseDate(dateStr string) (time.Time, error) {
 func GetSummary(c *fiber.Ctx) error {
 	month := c.Query("month")
 	year := c.Query("year")
-	println("Month:", month, "Year:", year)
-	rows, err := db.Query(`
-	SELECT e.ชื่อ_นามสกุล,
-		COALESCE(SUM((l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1), 0) AS total_days,
-		COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Sick Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS sick_days,
-		COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Business Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS vacation_days,
-		COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Vacation Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS business_days
-	FROM "ประวัติการลา" l
-	JOIN พนักงาน e ON e.รหัสพนักงาน = l.fk_รหัสพนักงาน
-	JOIN "ประเภทของแต่ละลาหยุด" t ON t.รหัสโค้ดลำดับ = l.ประเภทการลา
-	WHERE EXTRACT(MONTH FROM l.วันที่เริ่มลา) = $1 AND EXTRACT(YEAR FROM l.วันที่เริ่มลา) = $2
-	GROUP BY e.ชื่อ_นามสกุล
-`, month, year)
+	fmt.Println("Month:", month, "Year:", year)
 
-	println("Query executed successfully")
+	var rows *sql.Rows
+	var err error
+
+	if month == "" {
+		// ถ้าไม่ส่ง month ให้สรุปทั้งปี
+		rows, err = db.Query(`
+			SELECT e.รหัสพนักงาน,e.ชื่อ_นามสกุล,
+				COALESCE(SUM((l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1), 0) AS total_days,
+				COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Sick Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS sick_days,
+				COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Vacation Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS vacation_days,
+				COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Business Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS business_days
+			FROM "ประวัติการลา" l
+			JOIN พนักงาน e ON e.รหัสพนักงาน = l.fk_รหัสพนักงาน
+			JOIN "ประเภทของแต่ละลาหยุด" t ON t.รหัสโค้ดลำดับ = l.ประเภทการลา
+			WHERE EXTRACT(YEAR FROM l.วันที่เริ่มลา) = $1
+			GROUP BY e.รหัสพนักงาน,e.ชื่อ_นามสกุล
+		`, year)
+	} else {
+		// ถ้ามี month ให้สรุปเฉพาะเดือนนั้น
+		rows, err = db.Query(`
+			SELECT  e.รหัสพนักงาน,e.ชื่อ_นามสกุล,
+				COALESCE(SUM((l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1), 0) AS total_days,
+				COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Sick Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS sick_days,
+				COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Vacation Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS vacation_days,
+				COALESCE(SUM(CASE WHEN t.ชื่อประเภท = 'Business Leave' THEN (l.วันที่สิ้นสุดการลา::date - l.วันที่เริ่มลา::date) + 1 ELSE 0 END), 0) AS business_days
+			FROM "ประวัติการลา" l
+			JOIN พนักงาน e ON e.รหัสพนักงาน = l.fk_รหัสพนักงาน
+			JOIN "ประเภทของแต่ละลาหยุด" t ON t.รหัสโค้ดลำดับ = l.ประเภทการลา
+			WHERE EXTRACT(MONTH FROM l.วันที่เริ่มลา) = $1 AND EXTRACT(YEAR FROM l.วันที่เริ่มลา) = $2
+			GROUP BY  e.รหัสพนักงาน,e.ชื่อ_นามสกุล
+		`, month, year)
+	}
+
 	if err != nil {
 		log.Println("❌ Error executing query:", err.Error())
 		return c.Status(500).JSON(fiber.Map{
@@ -269,17 +292,17 @@ func GetSummary(c *fiber.Ctx) error {
 	defer rows.Close()
 
 	type Summary struct {
+		EmployeeID   int    `json:"employee_id"`
 		EmployeeName string `json:"employee_name"`
 		TotalDays    int    `json:"total_days"`
 		SickDays     int    `json:"sick_days"`
 		VacationDays int    `json:"vacation_days"`
 		BusinessDays int    `json:"business_days"`
 	}
-	println("Processing rows")
 	var results []Summary
 	for rows.Next() {
 		var s Summary
-		if err := rows.Scan(&s.EmployeeName, &s.TotalDays, &s.SickDays, &s.VacationDays, &s.BusinessDays); err == nil {
+		if err := rows.Scan(&s.EmployeeID, &s.EmployeeName, &s.TotalDays, &s.SickDays, &s.VacationDays, &s.BusinessDays); err == nil {
 			results = append(results, s)
 		}
 	}
@@ -559,4 +582,21 @@ func UpdateBooleanField(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"message": "อัปเดตสถานะสำเร็จ"})
+}
+
+func GetAllEmployeeEmails(c *fiber.Ctx) error {
+	rows, err := db.Query(`SELECT email FROM พนักงาน WHERE email IS NOT NULL`)
+	if err != nil {
+		return c.Status(500).SendString("❌ ไม่สามารถดึงอีเมลพนักงาน")
+	}
+	defer rows.Close()
+
+	var emails []string
+	for rows.Next() {
+		var email string
+		if err := rows.Scan(&email); err == nil {
+			emails = append(emails, email)
+		}
+	}
+	return c.JSON(emails)
 }

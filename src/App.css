@@ -13,6 +13,73 @@ body {
 h1 {
   text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
 }
+.controls {
+  display:flex;
+  gap:10px;
+  align-items:center;
+}
+.search-bar {
+  flex:1;
+  padding:8px;
+  position:sticky;
+  top:0;
+  background:white;
+  z-index:2;
+}
+
+.table-container {
+  max-height:60vh;
+  overflow-y:auto;
+}
+
+.calendar-container {
+  overflow-x:auto;
+  border:1px solid #ddd;
+  padding-bottom:10px;
+}
+
+.calendar-header, .calendar-row {
+  display:flex;
+  align-items:center;
+}
+
+.emp-name-col {
+  flex:0 0 120px;
+  padding:4px;
+  font-weight:bold;
+  border-right:1px solid #ddd;
+}
+
+.days-row {
+  position:relative;
+  display:flex;
+  flex:1;
+}
+
+.day-cell {
+  flex:0 0 calc(100% / 31);
+  border-right:1px solid #eee;
+  text-align:center;
+  font-size:0.8rem;
+  padding:4px 0;
+}
+
+.line-bg {
+  position:absolute;
+  top:0; left:0; right:0; bottom:0;
+  background:#f9f9f9;
+}
+
+.leave-bar {
+  position:absolute;
+  height:24px;
+  border-radius:4px;
+  cursor:pointer;
+}
+.calendar-container,
+.calendar-container * {
+  pointer-events: auto;
+}
 
 .table-container {
   background: rgba(255, 255, 255, 0.7);

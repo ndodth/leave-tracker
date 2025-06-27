@@ -47,6 +47,7 @@ func main() {
 
 	app.Post("/api/upload", UploadExcel)
 	app.Get("/api/history", GetLeaveHistory)
+	app.Get("/api/emails", GetAllEmployeeEmails)
 	app.Post("/api/employees", addEmployee)
 	app.Get("/api/warning", GetWarning)
 	app.Get("/api/summary", GetSummary)
