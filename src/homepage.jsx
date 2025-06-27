@@ -35,7 +35,7 @@ function HomePage() {
         fetchSummary();
     }, [selectedMonth, selectedYear]);
     const fetchData = () => {
-        fetch('https://leave-tracker-production-8bcc.up.railway.app//api/history')
+        fetch('https://leave-tracker-production-8bcc.up.railway.app/api/history')
             .then((res) => res.json())
             .then((data) => {
                 console.log('📄 data', data);
@@ -46,7 +46,7 @@ function HomePage() {
 
     const fetchSummary = async () => {
         try {
-            let url = `https://leave-tracker-production-8bcc.up.railway.app//api/summary?year=${selectedYear}`;
+            let url = `https://leave-tracker-production-8bcc.up.railway.app/api/summary?year=${selectedYear}`;
             if (selectedMonth) {
                 url += `&month=${selectedMonth}`;
             }
@@ -60,67 +60,10 @@ function HomePage() {
         }
     };
 
-    const [allEmployeeEmails, setAllEmployeeEmails] = useState([]);
-
-    useEffect(() => {
-        fetch('https://leave-tracker-production-8bcc.up.railway.app//api/emails')
-            .then(res => res.json())
-            .then(data => setAllEmployeeEmails(Array.isArray(data) ? data : []));
-    }, []);
-
     const handleFileChange = async (e) => {
         setCurrentPage(1); // Reset to first page on new upload
         const file = e.target.files[0];
         if (!file) return;
-
-        let rows; 
-        // --- เช็ค format ไฟล์ก่อนอัปโหลด ---
-        try {
-            const data = await file.arrayBuffer();
-            const workbook = XLSX.read(data, { type: "array" });
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
-            rows = XLSX.utils.sheet_to_json(sheet, { header: 1 }); // <--- กำหนดค่าใน try
-
-            // ตรวจสอบหัวตารางที่ต้องมี
-            const requiredHeaders = [
-                "Email",
-                "Leave Start Date",
-                "Leave End Date",
-                "Type Of Leave",
-                "Site"
-            ];
-            const fileHeaders = (rows[0] || []).map(h => (h || "").toString().trim());
-            const isValid = requiredHeaders.every((h, i) => fileHeaders[i] === h);
-
-            if (!isValid) {
-                alert("❌ ไฟล์ไม่ถูกต้อง! กรุณาใช้ไฟล์ตามรูปแบบตัวอย่าง");
-                return;
-            }
-        } catch (err) {
-            alert("❌ ไม่สามารถอ่านไฟล์ Excel ได้");
-            return;
-        }
-        // --- จบเช็ค format ---
-
-        // --- เช็ค email ว่ามีในระบบไหม (ใช้ allEmployeeEmails) ---
-        const emailsInFile = (rows || []).slice(1)
-            .map(row => (row[0] || "").toString().trim())
-            .filter(email => !!email);
-
-        const emailsInSystem = new Set(allEmployeeEmails.map(e => e.toLowerCase()));
-        const notFoundEmails = emailsInFile.filter(email => !emailsInSystem.has(email.toLowerCase()));
-
-        if (notFoundEmails.length > 0) {
-            alert(
-                "❌ พบอีเมลที่ไม่มีในระบบ:\n" +
-                notFoundEmails.join("\n") +
-                "\n\nกรุณาตรวจสอบหรือเพิ่มข้อมูลพนักงานก่อนอัปโหลด"
-            );
-            return;
-        }
-        // --- จบเช็ค email ---
-
         const formData = new FormData();
         formData.append('file', file);
         try {
@@ -259,7 +202,7 @@ function HomePage() {
         const wsData = [
             ["Email", "Leave Start Date", "Leave End Date", "Type Of Leave", "Site"],
             ["somchai@email.com", "2024-06-01", "2024-06-03", leaveTypes[0], sites[0]],
-            ["somying@email.com", "2024-06-05", "2024-06-07", leaveTypes[1], sites[1]],
+            ["somying@email.com", "2024-06-05", "2024-06-07", leaveTypes[1], sites[0]],
             [],
             ["หมายเหตุ: กรอก 'Type Of Leave' ตามตัวเลือกใน Sheet2 และ Site ตามตัวเลือกใน Sheet2"]
         ];
