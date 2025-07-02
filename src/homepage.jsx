@@ -208,9 +208,7 @@ function HomePage() {
             ["Email", "Leave Start Date", "Leave End Date", "Type Of Leave", "Site"],
             ["ndodth@gmail.com", "2024-06-01", "2024-06-03", leaveTypes[0], sites[0]],
             ["ndodth@gmail.com", "2024-06-05", "2024-06-07", leaveTypes[1], sites[0]],
-            [],
-            ["หมายเหตุ: กรอก 'Type Of Leave' ตามตัวเลือกใน Sheet2 และ Site ตามตัวเลือกใน Sheet2"]
-        ];
+           ];
 
         // Sheet2: ตัวเลือก dropdown
         const wsOptions = [
