@@ -61,7 +61,7 @@ function ProbationPage() {
       return;
     }
 
-    const res = await fetch('http://localhost:3000/api/add-employee', {
+    const res = await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/add-employee', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
