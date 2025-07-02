@@ -200,7 +200,6 @@ func UploadExcel(c *fiber.Ctx) error {
 	}
 	//err
 	log.Println("✅อัปโหลดไฟล์ Excel สำเร็จ:", fileHeader.Filename)
-	_ = GetWarning(c)
 	return c.Status(200).SendString("✅อัปโหลดไฟล์ Excel สำเร็จ")
 }
 func GetWarning(c *fiber.Ctx) error {
@@ -618,4 +617,18 @@ func GetAllEmployeeEmails(c *fiber.Ctx) error {
 		}
 	}
 	return c.JSON(emails)
+}
+func UpdateWarningStatus(c *fiber.Ctx) error {
+	type Req struct {
+		WarningID int `json:"warning_id"`
+	}
+	var req Req
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(400).SendString("ข้อมูลไม่ถูกต้อง")
+	}
+	_, err := db.Exec(`UPDATE "ประวัติการลา" SET เตือน = true WHERE รหัสลา = $1`, req.WarningID)
+	if err != nil {
+		return c.Status(500).SendString("อัปเดตสถานะเตือนล้มเหลว")
+	}
+	return c.SendString("อัปเดตสถานะเตือนสำเร็จ")
 }

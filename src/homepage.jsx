@@ -68,8 +68,9 @@ function HomePage() {
             });
             const text = await res.text();
             alert(text);
+             if (!res.ok) return;
             fetchData();
-
+            
             const warningRes = await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/warning');
             const warningData = await warningRes.json();
 
@@ -87,7 +88,15 @@ function HomePage() {
                         },
                         "d-wSsdetLCRUMcgoO"
                     );
-                    if (success) successCount++;
+                    if (success) {
+                        // อัปเดตสถานะเตือนใน backend
+                        await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/update-warning', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ warning_id: user.WarningID }) // <<-- ส่งรหัสลาไป
+                        });
+                        successCount++;
+                    }
                 }
                 alert(`📧 แจ้งเตือนอีเมล ${successCount}/${warningData.length} คน`);
             }

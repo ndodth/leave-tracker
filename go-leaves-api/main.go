@@ -44,7 +44,7 @@ func main() {
 		AllowOrigins: "*",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
-
+	app.Post("/api/update-warning", UpdateWarningStatus)
 	app.Post("/api/upload", UploadExcel)
 	app.Get("/api/history", GetLeaveHistory)
 	app.Get("/api/emails", GetAllEmployeeEmails)
