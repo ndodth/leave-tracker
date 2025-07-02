@@ -4,6 +4,9 @@ import './App.css';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import HomePage from './homepage';
 import EmployeePage from './EmployeePage';
+import Probation from './Probation';
+import AssessmentFeedback from './AssessmentFeedback'; // เพิ่มบรรทัดนี้
+
 function App() {
   return (
     <Router>
@@ -21,6 +24,9 @@ function App() {
               <li className="nav-item">
                 <Link className="nav-link" to="/employees">ข้อมูลพนักงาน</Link>
               </li>
+              <li className="nav-item">
+                <Link className="nav-link" to="/Probation">Probation</Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -29,7 +35,8 @@ function App() {
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/employees" element={<EmployeePage />} />
-      </Routes>
+        <Route path="/Probation" element={<Probation />} />
+<Route path="/assessment-feedback/:probation_id" element={<AssessmentFeedback />} />      </Routes>
     </Router>
   );
 }

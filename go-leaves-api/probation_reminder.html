@@ -1,0 +1,71 @@
+<!-- save as templates/probation_reminder.html -->
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>แจ้งเตือนการประเมินพนักงาน</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f4f4;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: 30px auto;
+      background: #ffffff;
+      border: 1px solid #dddddd;
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .header {
+      background-color: #ff8c00;
+      color: #ffffff;
+      padding: 20px;
+      text-align: center;
+    }
+    .content {
+      padding: 20px;
+      color: #333333;
+      line-height: 1.6;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      background-color: #5461cf;
+      color: #ffffff !important;
+      text-decoration: none;
+      font-weight: bold;
+      border-radius: 6px;
+      margin-top: 20px;
+    }
+    .footer {
+      background-color: #f4f4f4;
+      color: #777777;
+      padding: 12px;
+      text-align: center;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h2>แจ้งเตือนการประเมินพนักงาน</h2>
+    </div>
+    <div class="content">
+      <p>สวัสดีคุณ {{.to_name}},</p>
+      <p>ใกล้ครบช่วงทดลองงานของพนักงาน <strong>{{.employee_name}}</strong> ที่เริ่มเมื่อ <strong>{{.start_date}}</strong></p>
+      <p>กรุณาคลิกที่ปุ่มด้านล่างเพื่อเข้าสู่หน้าการประเมิน:</p>
+      <p style="text-align: center;">
+        <a href="{{.assessment_link}}" class="button" target="_blank">ประเมินพนักงาน</a>
+      </p>
+      <p>ขอบคุณค่ะ</p>
+    </div>
+    <div class="footer">
+      ระบบอีเมลอัตโนมัติ กรุณาอย่าตอบกลับ
+    </div>
+  </div>
+</body>
+</html>

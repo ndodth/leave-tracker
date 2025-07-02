@@ -59,8 +59,12 @@ func main() {
 	app.Get("/api/document", GetStartDocuments)
 	app.Post("/api/update-boolean", UpdateBooleanField)
 
+	app.Get("/api/sendEmailWithSendGridTemplate", SendProbationReminder)
 	app.Get("/api/employee-confirm/:id", ConfirmEmployee)
 	app.Post("/api/update-document-url", UpdateDocumentURL)
+	app.Get("/api/evaluations", GetAllEvaluations)
+	app.Get("/api/pending-probation", GetPendingProbationFeedback)
+	app.Post("/api/probation-feedback", SubmitProbationFeedback)
 	log.Println("🚀 Server is running at http://localhost:3000")
 	app.Listen(":3000")
 }

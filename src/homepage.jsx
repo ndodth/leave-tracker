@@ -10,15 +10,11 @@ function HomePage() {
     const [summaryData, setSummaryData] = useState([]);
     const [mode, setMode] = useState('table');
     const [search, setSearch] = useState('');
-
-
     const [selectedMonth, setSelectedMonth] = useState('');
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
-    // เพิ่ม state สำหรับ summary pagination
     const [summaryPage, setSummaryPage] = useState(1);
     const summaryPerPage = 20;
 

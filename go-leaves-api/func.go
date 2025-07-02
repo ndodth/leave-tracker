@@ -468,6 +468,8 @@ func addEmployee(c *fiber.Ctx) error {
 		Site       string `json:"site"`
 		Position   string `json:"position"`
 		Department string `json:"department"`
+		StartDate  string `json:"start_date"`
+		EndDate    string `json:"end_date"`
 		Boss       *int   // ใช้ pointer int เพราะจะเก็บรหัสหัวหน้าได้ หรือ nil
 	}
 
@@ -498,15 +500,16 @@ func addEmployee(c *fiber.Ctx) error {
 
 	// 🔻 insert แบบกำหนดรหัสเอง
 	_, err = db.Exec(`
-		INSERT INTO พนักงาน 
-		(รหัสพนักงาน, ชื่อ_นามสกุล, email, fk_รหัสsite, ตำแหน่ง, แผนก, วันที่เริ่มทำงาน, หัวหน้า)
-		VALUES ($1, $2, $3, (SELECT รหัสsite FROM site WHERE ชื่อsite = $4), $5, $6, NOW(), $7)
-	`, nextID, emp.Name, emp.Email, emp.Site, emp.Position, emp.Department, emp.Boss)
+        INSERT INTO พนักงาน 
+        (รหัสพนักงาน, ชื่อ_นามสกุล, email, fk_รหัสsite, ตำแหน่ง, แผนก, วันที่เริ่มทำงาน, หัวหน้า)
+        VALUES ($1, $2, $3, (SELECT รหัสsite FROM site WHERE ชื่อsite = $4), $5, $6, $7, $8)
+    `, nextID, emp.Name, emp.Email, emp.Site, emp.Position, emp.Department, emp.StartDate, emp.Boss)
 	if err != nil {
 		fmt.Println("❌ เพิ่มพนักงานล้มเหลว:", err)
 		return c.Status(500).SendString("❌ เพิ่มพนักงานล้มเหลว")
 	}
 	fmt.Println("✅ เพิ่มพนักงานสำเร็จ, รหัส:", nextID)
+
 	var Iddoc int
 	err = db.QueryRow(`SELECT COALESCE(MAX(รหัส), 1000) + 1 FROM เอกสารพนักงาน`).Scan(&Iddoc)
 	if err != nil {
@@ -515,11 +518,27 @@ func addEmployee(c *fiber.Ctx) error {
 	}
 	// สร้างเอกสารว่าง
 	_, err = db.Exec(`
-		INSERT INTO เอกสารพนักงาน (รหัส,รหัสพนักงาน, ส่งอีเมลต้อนรับแล้ว,วันที่ส่งอีเมล) VALUES ($1,$2, TRUE,CURRENT_TIMESTAMP)
-	`, Iddoc, nextID)
+        INSERT INTO เอกสารพนักงาน (รหัส,รหัสพนักงาน, ส่งอีเมลต้อนรับแล้ว,วันที่ส่งอีเมล) VALUES ($1,$2, TRUE,CURRENT_TIMESTAMP)
+    `, Iddoc, nextID)
 	if err != nil {
 		fmt.Println("❌ สร้างเอกสารไม่สำเร็จ:", err)
 		return c.Status(500).SendString("❌ สร้างเอกสารไม่สำเร็จ")
+	}
+
+	var Idprobation int
+	err = db.QueryRow(`SELECT COALESCE(MAX(รหัส), 1000) + 1 FROM ตารางทดลองงาน`).Scan(&Idprobation)
+	if err != nil {
+		fmt.Println("❌ ไม่สามารถคำนวณรหัสทดลองงานใหม่:", err)
+		return c.Status(500).SendString("❌ ไม่สามารถคำนวณรหัสทดลองงานใหม่")
+	}
+	// ตารางทดลองงาน (เพิ่ม start_date, end_date)
+	_, err = db.Exec(`
+		INSERT INTO ตารางทดลองงาน (รหัส,รหัสพนักงาน, วันที่เริ่มทำงาน, วันที่สิ้นสุดทดลอง, เวลาสร้าง, เวลาส่งแจ้งเตือน) 
+		VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP, ($3::date + INTERVAL '30 days'))
+	`, Idprobation, nextID, emp.StartDate, emp.EndDate)
+	if err != nil {
+		fmt.Println("❌ สร้างตารางทดลองงานไม่สำเร็จ:", err)
+		return c.Status(500).SendString("❌ สร้างตารางทดลองงานไม่สำเร็จ")
 	}
 
 	return c.JSON(fiber.Map{
