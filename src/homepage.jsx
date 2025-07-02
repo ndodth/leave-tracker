@@ -11,7 +11,7 @@ function HomePage() {
     const [mode, setMode] = useState('table');
     const [search, setSearch] = useState('');
     const [selectedMonth, setSelectedMonth] = useState('');
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+    const [selectedYear, setSelectedYear] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const itemsPerPage = 20;
 
@@ -31,7 +31,7 @@ function HomePage() {
         fetchSummary();
     }, [selectedMonth, selectedYear]);
     const fetchData = () => {
-        fetch('https://leave-tracker-production-8bcc.up.railway.app/api/history')
+        fetch('http://localhost:3000/api/history')
             .then((res) => res.json())
             .then((data) => {
                 console.log('📄 data', data);
@@ -63,7 +63,7 @@ function HomePage() {
         const formData = new FormData();
         formData.append('file', file);
         try {
-            const res = await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/upload', {
+            const res = await fetch('http://localhost:3000/api/upload', {
                 method: 'POST', body: formData,
             });
             const text = await res.text();
@@ -113,12 +113,12 @@ function HomePage() {
     const filteredLeaves = leaves.filter((leave) => {
         const matchesSearch =
             leave.employee_name?.toLowerCase().includes(search.toLowerCase()) ||
-            leave.employee_id?.toString().includes(search);
+            leave.id?.toString().includes(search);
 
         const date = new Date(leave.start_date);
-        const matchesMonthYear =
-            (!selectedMonth || date.getMonth() + 1 === Number(selectedMonth)) &&
-            date.getFullYear() === Number(selectedYear);
+       const matchesMonthYear =
+    (!selectedMonth || date.getMonth() + 1 === Number(selectedMonth)) &&
+    (!selectedYear || date.getFullYear() === Number(selectedYear));
 
         return matchesSearch && matchesMonthYear;
     });
@@ -259,7 +259,17 @@ function HomePage() {
                     {months.map((m, i) => (
                         <option key={i + 1} value={i + 1}>{m}</option>
                     ))}
-                </select>                <select className="form-select form-select-lg w-auto" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))}>{[2024, 2025, 2026].map((y) => (<option key={y} value={y}>{y}</option>))}</select>
+                </select>
+                <select
+                    className="form-select form-select-lg w-auto"
+                    value={selectedYear}
+                    onChange={e => setSelectedYear(e.target.value)}
+                >
+                    <option value="">--เลือกปี--</option>
+                    {[2024, 2025, 2026].map((y) => (
+                        <option key={y} value={y}>{y}</option>
+                    ))}
+                </select>
             </div>
 
             <div className="d-flex flex-column flex-md-row justify-content-between align-items-center gap-3 mb-5">
@@ -498,7 +508,7 @@ function HomePage() {
                         <tbody>
                             {currentItems.map((l, idx) => (
                                 <tr key={l.id ?? idx} className={l.remaining_leave_days < 0 ? 'table-danger text-white fw-bold' : ''}>
-                                    <td>{l.employee_id}</td>
+                                    <td>{l.id}</td>
                                     <td>{l.employee_name}</td>
                                     <td>{l.employee_email || '-'}</td>
                                     <td>{l.site}</td>
