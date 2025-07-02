@@ -237,7 +237,7 @@ func GetWarning(c *fiber.Ctx) error {
 }
 
 func tryParseDate(dateStr string) (time.Time, error) {
-	formats := []string{"02-Jan-06", "2-Jan-06", "2-Jan-2006", "02-Jan-2006"}
+	formats := []string{"02-Jan-06", "2-Jan-06", "2-Jan-2006", "02-Jan-2006", "2006-01-02"}
 	for _, format := range formats {
 		if t, err := time.Parse(format, dateStr); err == nil {
 			return t, nil
