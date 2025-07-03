@@ -63,7 +63,7 @@ function HomePage() {
         const formData = new FormData();
         formData.append('file', file);
         try {
-            const res = await fetch('http://localhost:3000/api/upload', {
+            const res = await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/upload', {
                 method: 'POST', body: formData,
             });
             const text = await res.text();

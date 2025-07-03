@@ -138,13 +138,12 @@ func SubmitProbationFeedback(c *fiber.Ctx) error {
 	return c.SendString("บันทึกผลการประเมินเรียบร้อย")
 }
 
-func sendProbationReminderMailgun(employeeName, startDate, link string) error {
+func sendProbationReminderMailgun(employeeName, startDate, link, toEmail string) error {
 	fmt.Println("🔔 ส่งอีเมลแจ้งเตือนการประเมินพนักงานช่วงทดลองงาน")
 	domain := "sandbox131fede9a92b464aa20f78c15c47acce.mailgun.org" // เปลี่ยนเป็นของคุณ
 	apiKey := os.Getenv("MAILGUN_API_KEY")                          // หรือใส่ key ตรงนี้ (ไม่แนะนำ)
 	from := "ระบบแจ้งเตือน <noreply@" + domain + ">"                // ใช้ domain เดียวกับ sandbox
 	subject := "แจ้งเตือนการประเมินพนักงานช่วงทดลองงาน"
-	toEmail := "teeranatsrikaew28@gmail.com"
 
 	html := fmt.Sprintf(`
 <!DOCTYPE html>
@@ -274,34 +273,39 @@ func SendProbationReminder(c *fiber.Ctx) error {
 		var name, start string
 		rows.Scan(&id, &empID, &name, &start)
 
-		// ส่งหาคุณคนเดียว
-		toEmail := "teeranatsrikaew28@gmail.com"
-		assessmentLink := fmt.Sprintf("http://localhost:3000/assessment-feedback/%d", id)
+		// ส่งหาคุณคนเดียว + ส่งหา aranya.k@vannessplus.com ด้วย
+		toEmails := []string{
+			"teeranatsrikaew28@gmail.com",
+			"aranya.k@vannessplus.com",
+		}
+		assessmentLink := fmt.Sprintf("https://leave-tracker-rosy.vercel.app/assessment-feedback/%d", id)
 
-		err := sendProbationReminderMailgun(name, start, assessmentLink)
-		if err != nil {
-			fmt.Printf("❌ ส่งอีเมลล้มเหลวให้ %s: %v\n", toEmail, err)
-			continue
-		}
-		var maxID int
-		err = db.QueryRow(`SELECT COALESCE(MAX(id), 0) FROM ตารางบันทึกการแจ้งเตื`).Scan(&maxID)
-		if err != nil {
-			fmt.Printf("❌ ไม่สามารถหา id สูงสุด: %v\n", err)
-			continue
-		}
-		newID := maxID + 1
-		_, err = db.Exec(
-			`INSERT INTO ตารางบันทึกการแจ้งเตื 
+		for _, toEmail := range toEmails {
+			err := sendProbationReminderMailgun(name, start, assessmentLink, toEmail)
+			if err != nil {
+				fmt.Printf("❌ ส่งอีเมลล้มเหลวให้ %s: %v\n", toEmail, err)
+				continue
+			}
+			var maxID int
+			err = db.QueryRow(`SELECT COALESCE(MAX(id), 0) FROM ตารางบันทึกการแจ้งเตื`).Scan(&maxID)
+			if err != nil {
+				fmt.Printf("❌ ไม่สามารถหา id สูงสุด: %v\n", err)
+				continue
+			}
+			newID := maxID + 1
+			_, err = db.Exec(
+				`INSERT INTO ตารางบันทึกการแจ้งเตื 
 		(id, รหัสพนักงาน, รหัสช่วงทดลองงาน, แจ้งไปยัง, วันที่ส่งแจ้งเตือน, หัวเรื่อง) 
 	 VALUES ($1, $2, $3, $4, CURRENT_DATE, $5)`,
-			newID, empID, id, "hr", fmt.Sprintf("แจ้งเตือนประเมินพนักงาน %d", empID),
-		)
-		if err != nil {
-			fmt.Printf("❌ บันทึกการแจ้งเตือนล้มเหลวสำหรับ %s: %v\n", toEmail, err)
-			continue
+				newID, empID, id, "hr", fmt.Sprintf("แจ้งเตือนประเมินพนักงาน %d", empID),
+			)
+			if err != nil {
+				fmt.Printf("❌ บันทึกการแจ้งเตือนล้มเหลวสำหรับ %s: %v\n", toEmail, err)
+				continue
+			}
+			fmt.Printf("✅ ส่งอีเมลไปที่ %s เรียบร้อย\n", toEmail)
+			count++
 		}
-		fmt.Printf("✅ ส่งอีเมลไปที่ %s เรียบร้อย\n", toEmail)
-		count++
 	}
 
 	return c.SendString(fmt.Sprintf("✅ ส่งแจ้งเตือนมายังคุณ %d รอบ", count))
