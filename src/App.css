@@ -7,17 +7,19 @@ body {
     font-family: 'Fredoka', sans-serif;
   background: linear-gradient(135deg, #e0eaff, #fef6ff);
   min-height: 100vh;
-  padding: 30px 0;
+}
+h1, h2, h3, h4, h5 {
+  font-family: 'Fredoka', sans-serif;
+  letter-spacing: 1px;
+}
+.glass-card {
+  background: rgba(255,255,255,0.85);
+  border-radius: 28px;
+  box-shadow: 0 8px 32px 0 rgba(84,97,207,0.12);
+  backdrop-filter: blur(8px);
+  border: 1.5px solid #e3e8ee;
 }
 
-h1 {
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.2);
-}
-.controls {
-  display:flex;
-  gap:10px;
-  align-items:center;
-}
 .search-bar {
   flex:1;
   padding:8px;
@@ -98,9 +100,20 @@ input.form-control {
   box-shadow: 0 2px 6px rgba(0,0,0,0.05);
 }
 
+input.form-control, .form-select {
+  border-radius: 18px !important;
+  font-size: 1.1rem;
+}
+
 button.btn-success {
   border-radius: 30px;
   padding: 8px 20px;
+  font-weight: 500;
+}
+
+.btn, .btn-lg {
+  border-radius: 18px !important;
+  font-size: 1.1rem;
   font-weight: 500;
 }
 
@@ -108,7 +121,30 @@ tr.bg-danger {
   background-color: #b02a37 !important;
 }
 
+.table {
+  border-radius: 18px !important;
+  overflow: hidden;
+}
+
+.table th, .table td {
+  vertical-align: middle !important;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f5faff;
+  transition: background 0.2s;
+}
+
 .pagination .page-link {
   border-radius: 10px !important;
   margin: 0 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #bfcfff;
+  border-radius: 8px;
+}
+::-webkit-scrollbar {
+  background: #f5faff;
+  width: 8px;
 }

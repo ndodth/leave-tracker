@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom'; // เพิ่มบรรทัดนี้
+import { useNavigate } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './App.css';
 
@@ -44,24 +44,28 @@ function AssessmentFeedback() {
 
   return (
     <div className="container my-5" style={{ maxWidth: 500 }}>
-      <h2 className="mb-4 text-primary text-center">ฟอร์มประเมินพนักงานช่วงทดลองงาน</h2>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label className="form-label">ความคิดเห็น/ข้อเสนอแนะ</label>
-          <textarea
-            className="form-control"
-            rows={5}
-            value={comment}
-            onChange={e => setComment(e.target.value)}
-            required
-            placeholder="กรอกผลการประเมินหรือข้อเสนอแนะที่นี่"
-          />
+      <div className="card shadow-sm border-0">
+        <div className="card-body">
+          <h2 className="mb-4 text-primary text-center">ฟอร์มประเมินพนักงานช่วงทดลองงาน</h2>
+          <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label className="form-label">ความคิดเห็น/ข้อเสนอแนะ</label>
+              <textarea
+                className="form-control"
+                rows={5}
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                required
+                placeholder="กรอกผลการประเมินหรือข้อเสนอแนะที่นี่"
+              />
+            </div>
+            <button className="btn btn-success w-100" type="submit" disabled={loading}>
+              {loading ? 'กำลังส่ง...' : 'ส่งผลการประเมิน'}
+            </button>
+            {status && <div className={`mt-3 text-center ${status.startsWith('✅') ? 'text-success' : 'text-danger'}`}>{status}</div>}
+          </form>
         </div>
-        <button className="btn btn-success w-100" type="submit" disabled={loading}>
-          {loading ? 'กำลังส่ง...' : 'ส่งผลการประเมิน'}
-        </button>
-      </form>
-      {status && <div className="alert alert-info mt-3 text-center">{status}</div>}
+      </div>
     </div>
   );
 }

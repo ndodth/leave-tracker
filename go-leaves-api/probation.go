@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt"
 	"github.com/mailgun/mailgun-go/v4"
 )
 
@@ -109,24 +110,39 @@ func SubmitProbationFeedback(c *fiber.Ctx) error {
 		Comment     string `json:"comment"`
 	}
 
+	// ✅ ดึงข้อมูลจาก token (middleware ต้องแปะ JWT มาก่อน)
+	user := c.Locals("user").(*jwt.Token)
+	claims := user.Claims.(jwt.MapClaims)
+
+	employeeID := int(claims["employee_id"].(float64)) // JWT claims ต้อง cast จาก float64
+
 	var input FeedbackInput
 	if err := c.BodyParser(&input); err != nil {
 		return c.Status(400).SendString("ข้อมูลไม่ถูกต้อง")
 	}
+
 	var maxID int
 	err := db.QueryRow(`SELECT COALESCE(MAX(id), 0) FROM ตารางผลการประเมิน`).Scan(&maxID)
 	if err != nil {
 		return c.Status(500).SendString("ไม่สามารถหา id สูงสุด")
 	}
 	newID := maxID + 1
+	var role string
+	err = db.QueryRow(`SELECT ตำแหนย่ FROM พนักงาน WHERE รหัสพนักงาน = $1`, employeeID).Scan(&role)
+	if err != nil {
+		return c.Status(500).SendString("ไม่สามารถหาบทบาทของพนักงาน")
+	}
 	_, err = db.Exec(`
-		INSERT INTO ตารางผลการประเมิน (id,รหัสช่วงทดลองงาน, บทบาทผู้ประเมิน, ข้อความประเมิน, เวลาส่งประเมิน)
-		VALUES ($1,$2, hr, $3,current_timestamp)
-	`, newID, input.ProbationID, input.Comment)
+		INSERT INTO ตารางผลการประเมิน 
+		(id, รหัสช่วงทดลองงาน, รหัสผู้ประเมิน, บทบาทผู้ประเมิน, ข้อความประเมิน, เวลาส่งประเมิน)
+		VALUES ($1, $2, $3, $4, $5, current_timestamp)
+	`, newID, input.ProbationID, employeeID, role, input.Comment)
 
 	if err != nil {
 		return c.Status(500).SendString("ไม่สามารถบันทึกผลการประเมิน")
 	}
+
+	// อัปเดตสถานะช่วงทดลองงาน
 	_, err = db.Exec(`
 		UPDATE ตารางทดลองงาน
 		SET สถานะ = 'Completed'
@@ -135,7 +151,70 @@ func SubmitProbationFeedback(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(500).SendString("ไม่สามารถอัพเดตสถานะช่วงทดลองงาน")
 	}
+
 	return c.SendString("บันทึกผลการประเมินเรียบร้อย")
+}
+
+func SendTestProbationEmail(c *fiber.Ctx) error {
+	fmt.Println("🔔 กำลังทดสอบระบบส่งอีเมลแจ้งเตือนการประเมินพนักงานช่วงทดลองงาน")
+
+	domain := "sandbox131fede9a92b464aa20f78c15c47acce.mailgun.org"
+	apiKey := os.Getenv("MAILGUN_API_KEY")
+	from := "ระบบแจ้งเตือน <noreply@" + domain + ">"
+	subject := "แจ้งเตือนการประเมินพนักงานช่วงทดลองงาน"
+
+	// 🧪 ค่า test (ตั้งค่าคงที่)
+	employeeName := "สมชาย ใจดี"
+	startDate := "2025-06-07"
+	link := "https://leave-tracker-rosy.vercel.app/assessment-feedback/999"
+	toEmail := "teeranatsrikaew28@gmail.com"
+
+	html := fmt.Sprintf(`
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><title>แจ้งเตือนการประเมิน</title>
+<style>
+  body { font-family: Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+  .container { max-width: 600px; margin: 30px auto; background: #ffffff; border: 1px solid #ddd; border-radius: 8px; }
+  .header { background-color: #5461cf; color: #ffffff; padding: 20px; text-align: center; }
+  .content { padding: 20px; color: #333; line-height: 1.6; font-size: 16px; }
+  .button { display: inline-block; padding: 12px 24px; background-color: #28a745; color: #fff !important; text-decoration: none; font-weight: bold; border-radius: 6px; margin-top: 20px; }
+  .footer { background-color: #f4f4f4; color: #777; padding: 12px; text-align: center; font-size: 13px; }
+</style>
+</head>
+<body>
+  <div class="container">
+    <div class="header"><h2>📋 แจ้งเตือนประเมินพนักงาน</h2></div>
+    <div class="content">
+      <p>เรียนหัวหน้างาน,</p>
+      <p>พนักงาน <strong>%s</strong> ที่เริ่มทดลองงานเมื่อวันที่ <strong>%s</strong> กำลังจะครบกำหนดการประเมิน</p>
+      <p>กรุณาดำเนินการประเมินพนักงานท่านนี้โดยคลิกปุ่มด้านล่าง:</p>
+      <p style="text-align: center;"><a href="%s" class="button" target="_blank">📄 เริ่มการประเมิน</a></p>
+      <p>หากท่านได้รับอีเมลนี้โดยไม่ได้เกี่ยวข้อง กรุณาละเว้นอีเมลฉบับนี้</p>
+      <p>ขอขอบคุณ,<br><strong>ระบบแจ้งเตือน Vanness Plus</strong></p>
+    </div>
+    <div class="footer">อีเมลนี้ถูกส่งอัตโนมัติจากระบบ กรุณาอย่าตอบกลับ</div>
+  </div>
+</body>
+</html>
+`, employeeName, startDate, link)
+
+	mg := mailgun.NewMailgun(domain, apiKey)
+	message := mailgun.NewMessage(from, subject, "", toEmail)
+	message.SetHTML(html)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+
+	fmt.Printf("📤 กำลังส่งอีเมลไปที่: %s ...\n", toEmail)
+	_, _, err := mg.Send(ctx, message)
+	if err != nil {
+		fmt.Println("❌ ล้มเหลว:", err)
+		return err
+	}
+
+	fmt.Println("✅ ส่งอีเมลทดสอบสำเร็จแล้ว!")
+	return nil
 }
 
 func sendProbationReminderMailgun(employeeName, startDate, link, toEmail string) error {
@@ -269,14 +348,29 @@ func SendProbationReminder(c *fiber.Ctx) error {
 
 	var count int
 	for rows.Next() {
-		var id, empID int
-		var name, start string
+		var id, empID, boss int
+		var name, start, bossEmail, hrEmail, departBoss, departHr string
 		rows.Scan(&id, &empID, &name, &start)
-
-		// ส่งหาคุณคนเดียว + ส่งหา aranya.k@vannessplus.com ด้วย
+		err = db.QueryRow(`SELECT หัวหน้า FROM พนักงาน WHERE รหัสพนักงาน = $1`, empID).Scan(&boss)
+		if err != nil {
+			fmt.Printf("❌ ไม่สามารถหาหัวหน้าของพนักงาน %d: %v\n", empID, err)
+			continue
+		}
+		err = db.QueryRow(`SELECT email,แผนก FROM พนักงาน WHERE รหัสพนักงาน = $1`, boss).Scan(&bossEmail, &departBoss)
+		if err != nil {
+			fmt.Printf("❌ ไม่สามารถหาอีเมลหัวหน้าของพนักงาน %d: %v\n", empID, err)
+			continue
+		}
+		err = db.QueryRow(`SELECT email,แผนก FROM พนักงาน WHERE แผนก = 'ฝ่ายบุคคล' AND ตำแหน่ง = 'หัวหน้าแผนก'`).Scan(&hrEmail, &departHr)
+		if err != nil {
+			fmt.Printf("❌ ไม่สามารถหาอีเมลฝ่ายบุคคล: %v\n", err)
+			continue
+		}
+		// รวมอีเมลคุณ, aranya และหัวหน้า
 		toEmails := []string{
 			"teeranatsrikaew28@gmail.com",
-			"aranya.k@vannessplus.com",
+			hrEmail,
+			bossEmail,
 		}
 		assessmentLink := fmt.Sprintf("https://leave-tracker-rosy.vercel.app/assessment-feedback/%d", id)
 
@@ -286,26 +380,41 @@ func SendProbationReminder(c *fiber.Ctx) error {
 				fmt.Printf("❌ ส่งอีเมลล้มเหลวให้ %s: %v\n", toEmail, err)
 				continue
 			}
+
 			var maxID int
-			err = db.QueryRow(`SELECT COALESCE(MAX(id), 0) FROM ตารางบันทึกการแจ้งเตื`).Scan(&maxID)
+			err = db.QueryRow(`SELECT COALESCE(MAX(id), 0) FROM ตารางบันทึกการแจ้งเตือน`).Scan(&maxID)
 			if err != nil {
 				fmt.Printf("❌ ไม่สามารถหา id สูงสุด: %v\n", err)
 				continue
 			}
 			newID := maxID + 1
+
+			// ✅ หาว่าส่งหาใคร เพื่อใส่ค่าในคอลัมน์ "แจ้งไปยัง"
+			var notifyTo string
+			switch toEmail {
+			case bossEmail:
+				notifyTo = "หัวหน้าแผนก"
+			case hrEmail:
+				notifyTo = "HR"
+			default:
+				notifyTo = "ระบบ"
+			}
+
 			_, err = db.Exec(
-				`INSERT INTO ตารางบันทึกการแจ้งเตื 
+				`INSERT INTO ตารางบันทึกการแจ้งเตือน 
 		(id, รหัสพนักงาน, รหัสช่วงทดลองงาน, แจ้งไปยัง, วันที่ส่งแจ้งเตือน, หัวเรื่อง) 
-	 VALUES ($1, $2, $3, $4, CURRENT_DATE, $5)`,
-				newID, empID, id, "hr", fmt.Sprintf("แจ้งเตือนประเมินพนักงาน %d", empID),
+		VALUES ($1, $2, $3, $4, CURRENT_DATE, $5)`,
+				newID, empID, id, notifyTo, fmt.Sprintf("แจ้งเตือนประเมินพนักงาน %d", empID),
 			)
 			if err != nil {
 				fmt.Printf("❌ บันทึกการแจ้งเตือนล้มเหลวสำหรับ %s: %v\n", toEmail, err)
 				continue
 			}
-			fmt.Printf("✅ ส่งอีเมลไปที่ %s เรียบร้อย\n", toEmail)
+
+			fmt.Printf("✅ ส่งอีเมลไปที่ %s เรียบร้อย (แจ้งไปยัง: %s)\n", toEmail, notifyTo)
 			count++
 		}
+
 	}
 
 	return c.SendString(fmt.Sprintf("✅ ส่งแจ้งเตือนมายังคุณ %d รอบ", count))

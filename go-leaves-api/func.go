@@ -4,11 +4,14 @@ import (
 	"database/sql"
 	"fmt"
 	"log"
+	"os"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/xuri/excelize/v2"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type LeaveRecord struct {
@@ -658,4 +661,48 @@ func UpdateWarningStatus(c *fiber.Ctx) error {
 		return c.Status(500).SendString("อัปเดตสถานะเตือนล้มเหลว")
 	}
 	return c.SendString("อัปเดตสถานะเตือนสำเร็จ")
+}
+
+var jwtSecret = []byte(os.Getenv("JWT_SECRET"))
+
+func createpass(c *fiber.Ctx) error {
+	password := "1234"
+	hashed, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	// save string(hashed) ลงฟิลด์ password ในตารางพนักงาน
+	log.Println("✅ รหัสผ่านถูกสร้างและแฮชแล้ว:", string(hashed))
+	return c.SendString("✅ รหัสผ่านถูกสร้างและแฮชแล้ว")
+}
+
+func Login(c *fiber.Ctx) error {
+	type LoginInput struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
+	var input LoginInput
+	if err := c.BodyParser(&input); err != nil {
+		return c.Status(400).JSON(fiber.Map{"error": "ข้อมูลไม่ถูกต้อง"})
+	}
+
+	var hashedPassword string
+	var employeeID int
+	err := db.QueryRow(`SELECT รหัสพนักงาน, password FROM พนักงาน WHERE email = $1`, input.Email).Scan(&employeeID, &hashedPassword)
+	if err != nil {
+		return c.Status(401).JSON(fiber.Map{"error": "อีเมลหรือรหัสผ่านไม่ถูกต้อง"})
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(hashedPassword), []byte(input.Password)); err != nil {
+		return c.Status(401).JSON(fiber.Map{"error": "อีเมลหรือรหัสผ่านไม่ถูกต้อง"})
+	}
+
+	claims := jwt.MapClaims{
+		"employee_id": employeeID,
+		"email":       input.Email,
+		"exp":         time.Now().Add(time.Hour * 24 * 7).Unix(),
+	}
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signed, err := token.SignedString(jwtSecret)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "ไม่สามารถสร้าง token"})
+	}
+	return c.JSON(fiber.Map{"token": signed})
 }

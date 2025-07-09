@@ -44,6 +44,10 @@ func main() {
 		AllowOrigins: "*",
 		AllowHeaders: "Origin, Content-Type, Accept",
 	}))
+
+	app.Get("/api/createpass", createpass)
+
+	app.Post("/api/login", Login)
 	app.Post("/api/update-warning", UpdateWarningStatus)
 	app.Post("/api/upload", UploadExcel)
 	app.Get("/api/history", GetLeaveHistory)
@@ -60,9 +64,11 @@ func main() {
 	app.Post("/api/update-boolean", UpdateBooleanField)
 
 	app.Get("/api/sendEmailWithSendGridTemplate", SendProbationReminder)
+	//app.Get("/api/test", SendTestProbationEmail)
 	app.Get("/api/employee-confirm/:id", ConfirmEmployee)
 	app.Post("/api/update-document-url", UpdateDocumentURL)
 	app.Get("/api/evaluations", GetAllEvaluations)
+
 	app.Get("/api/pending-probation", GetPendingProbationFeedback)
 	app.Post("/api/probation-feedback", SubmitProbationFeedback)
 	log.Println("🚀 Server is running at http://localhost:3000")

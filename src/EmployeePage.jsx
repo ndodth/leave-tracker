@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { FaUpload, FaEye } from 'react-icons/fa';
 import './App.css';
 import { supabase } from './supabaseClient';
-import emailjs from 'emailjs-com';
 
 function EmployeePage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -37,9 +36,7 @@ function EmployeePage() {
   useEffect(() => {
     fetch('https://leave-tracker-production-8bcc.up.railway.app/api/document')
       .then((res) => res.json())
-      .then((data) => {
-        setEmployees(data);
-      })
+      .then((data) => setEmployees(data))
       .catch((err) => console.error('โหลดข้อมูลพนักงานล้มเหลว:', err))
       .finally(() => setLoading(false));
   }, []);
@@ -107,20 +104,25 @@ function EmployeePage() {
   return (
     <div className="container my-5">
       <h2 className="text-center text-primary fw-bold mb-4">📂 เอกสารพนักงาน</h2>
-      <input
-        type="search"
-        className="form-control form-control-lg shadow-sm"
-        placeholder="🔍 ค้นหาด้วยรหัสลา หรือชื่อ"
-        value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        style={{ maxWidth: 350 }}
-        aria-label="ค้นหา"
-      />
-
-      {loading ? <p>⏳ กำลังโหลด...</p> : (
+      <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <input
+          type="search"
+          className="form-control form-control-lg shadow-sm"
+          placeholder="🔍 ค้นหาด้วยรหัส หรือชื่อ"
+          value={searchTerm}
+          onChange={e => setSearchTerm(e.target.value)}
+          style={{ maxWidth: 350 }}
+        />
+      </div>
+      {loading ? (
+        <div className="text-center py-5">
+          <div className="spinner-border text-primary" role="status"></div>
+          <div className="mt-3 text-muted">กำลังโหลดข้อมูล...</div>
+        </div>
+      ) : (
         <div className="table-responsive">
-          <table className="table table-bordered text-center">
-            <thead>
+          <table className="table table-hover table-bordered align-middle text-center shadow-sm rounded">
+            <thead className="table-primary">
               <tr>
                 <th>รหัส</th>
                 <th>ชื่อ</th>
@@ -132,7 +134,14 @@ function EmployeePage() {
               </tr>
             </thead>
             <tbody>
-              {filteredEmployees.map((emp) => (
+              {filteredEmployees.length === 0 ? (
+                <tr>
+                  <td colSpan={8} className="text-muted py-4">
+                    <img src="https://cdn-icons-png.flaticon.com/512/4076/4076549.png" alt="empty" style={{width:80,opacity:0.5}} />
+                    <div className="mt-3">ไม่พบข้อมูล</div>
+                  </td>
+                </tr>
+              ) : filteredEmployees.map((emp) => (
                 <tr key={emp.id}>
                   <td>{emp.employee_id}</td>
                   <td>{emp.employee_name}</td>
