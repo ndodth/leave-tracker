@@ -22,7 +22,6 @@ function App() {
           <nav className="navbar navbar-expand-lg glass-nav shadow-sm mb-4">
             <div className="container">
               <Link className="navbar-brand fw-bold d-flex align-items-center" to="/">
-                <img src="/src/assets/logo.jpeg" alt="logo" style={{width:36,marginRight:10,borderRadius:8}} />
                 Vanness Plus
               </Link>
               <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
