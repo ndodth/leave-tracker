@@ -7,7 +7,7 @@ function ProbationPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch('https://leave-tracker-production-8bcc.up.railway.app/api/evaluations')
+    fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/evaluations')
       .then(res => res.json())
       .then(data => setEvaluations(Array.isArray(data) ? data : []))
       .catch(err => console.error('โหลดข้อมูลผลการประเมินล้มเหลว:', err))

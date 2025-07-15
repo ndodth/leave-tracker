@@ -18,7 +18,7 @@ function AssessmentFeedback() {
     setLoading(true);
     setStatus('');
     try {
-      const res = await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/probation-feedback', {
+      const res = await fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/probation-feedback', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

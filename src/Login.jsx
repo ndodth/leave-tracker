@@ -11,7 +11,7 @@ function Login({ onLogin }) {
     setLoading(true);
     setStatus('');
     try {
-      const res = await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/login', {
+      const res = await fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

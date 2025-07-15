@@ -34,7 +34,7 @@ function EmployeePage() {
   ];
 
   useEffect(() => {
-    fetch('https://leave-tracker-production-8bcc.up.railway.app/api/document')
+    fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/document')
       .then((res) => res.json())
       .then((data) => setEmployees(data))
       .catch((err) => console.error('โหลดข้อมูลพนักงานล้มเหลว:', err))
@@ -42,11 +42,11 @@ function EmployeePage() {
   }, []);
 
   useEffect(() => {
-    fetch('https://leave-tracker-production-8bcc.up.railway.app/api/sites')
+    fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/sites')
       .then((res) => res.json())
       .then(setSiteList);
 
-    fetch('https://leave-tracker-production-8bcc.up.railway.app/api/meta-options')
+    fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/meta-options')
       .then((res) => res.json())
       .then((data) => {
         setPositions(data.positions);
@@ -70,7 +70,7 @@ function EmployeePage() {
     const { data: urlData } = supabase.storage.from('document').getPublicUrl(filePath);
     const publicUrl = urlData.publicUrl;
 
-    await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/update-document-url', {
+    await fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/update-document-url', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -82,7 +82,7 @@ function EmployeePage() {
   };
 
   const handleToggleBooleanField = async (employeeId, field, currentValue) => {
-    const res = await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/update-boolean', {
+    const res = await fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/update-boolean', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ employee_id: employeeId, field, value: !currentValue }),

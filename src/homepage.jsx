@@ -31,7 +31,7 @@ function HomePage() {
 
   const fetchData = () => {
     setLoading(true);
-    fetch('https://leave-tracker-production-8bcc.up.railway.app/api/history')
+    fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/history')
       .then((res) => res.json())
       .then((data) => {
         Array.isArray(data) ? setLeaves(data) : setLeaves([]);
@@ -45,7 +45,7 @@ function HomePage() {
 
   const fetchSummary = async () => {
     try {
-      let url = 'https://leave-tracker-production-8bcc.up.railway.app/api/summary';
+      let url = 'https://exotic-ashil-vanness-09720f79.koyeb.app/api/summary';
       const params = [];
       if (selectedYear) params.push(`year=${selectedYear}`);
       if (selectedMonth) params.push(`month=${selectedMonth}`);
@@ -67,7 +67,7 @@ function HomePage() {
     const formData = new FormData();
     formData.append('file', file);
     try {
-      const res = await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/upload', {
+      const res = await fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/upload', {
         method: 'POST', body: formData,
       });
       const text = await res.text();
@@ -75,7 +75,7 @@ function HomePage() {
       if (!res.ok) return;
       fetchData();
 
-      const warningRes = await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/warning');
+      const warningRes = await fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/warning');
       const warningData = await warningRes.json();
 
       if (Array.isArray(warningData)) {
@@ -93,7 +93,7 @@ function HomePage() {
             "d-wSsdetLCRUMcgoO"
           );
           if (success) {
-            await fetch('https://leave-tracker-production-8bcc.up.railway.app/api/update-warning', {
+            await fetch('https://exotic-ashil-vanness-09720f79.koyeb.app/api/update-warning', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ warning_id: user.WarningID })
