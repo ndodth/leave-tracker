@@ -16,7 +16,7 @@ var db *sql.DB
 func main() {
 	var err error
 
-	// โหลด .env เฉพาะตอนรันในเครื่องเรา (ไม่โหลดใน Railway)
+	// โหลด .env เฉพาะตอนรันในเครื่องเรา (ไม่โหลดใน production)
 	if os.Getenv("RAILWAY_ENVIRONMENT") == "" {
 		if err := godotenv.Load(); err != nil {
 			log.Println("⚠️ Warning: ไม่พบไฟล์ .env (อาจจะรันบน production อยู่)")
@@ -37,6 +37,11 @@ func main() {
 	err = db.Ping()
 	if err != nil {
 		log.Fatal("❌ Failed to connect to Supabase:", err)
+	}
+
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3000"
 	}
 
 	app := fiber.New()
@@ -71,6 +76,11 @@ func main() {
 
 	app.Get("/api/pending-probation", GetPendingProbationFeedback)
 	app.Post("/api/probation-feedback", SubmitProbationFeedback)
-	log.Println("🚀 Server is running at http://localhost:3000")
-	app.Listen(":3000")
+
+	log.Printf("🚀 Server is running on 0.0.0.0:%s\n", port)
+	// bind ที่ 0.0.0.0 เพื่อให้รับ request จากภายนอกได้ (สำคัญมาก)
+	err = app.Listen("0.0.0.0:" + port)
+	if err != nil {
+		log.Fatal("❌ Failed to start server:", err)
+	}
 }
